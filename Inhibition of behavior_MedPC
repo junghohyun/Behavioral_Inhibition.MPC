@@ -1,0 +1,102 @@
+\Script for loss of control test
+
+\This section is for inputs
+^Nosepoke = 3
+
+\This section is for outputs
+^Fan = 3
+^Reward = 4   \In this code, this is the food dispenser.
+^LeftCue = 5
+^RightCue = 6
+^House = 7
+^Shock = 10
+^Tone = 12
+
+\A = timer
+\B = trial no
+\C = total omitted
+\D = success
+\E = shocked
+
+\F = TIME OF REWARD
+\G = TIME OF NOSEPOKE
+\H = SHOCK/NO-SHOCK \ 0 = OMISSION, 1 = SHOCK, 2 = NO SHOCK
+
+DIM F = 60
+DIM G = 60
+DIM H = 60
+
+DISKCOLUMNS = 1
+
+LIST U = 0, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 1, 3, 1, 3, 3
+\ List U is the list that defines the trial types (1 = no stimulus trial, 3 = stimulus trial)
+
+\-------------------------------------------------------------
+
+S.S.1,
+S1,
+  #START: ON ^House, ^Fan; SET B = 0 ---> S2
+S2,
+20": ADD B; SHOW 2, Trial, B; SET P = U(B); Z5 ---> S3
+S3,
+0.1": SHOW 3, SUCCESS, D; SHOW 4, SHOCKED, E; SHOW 5, OMITTED, C;
+        IF (P = 1) [@true, @false]
+         @true: Z1 ---> S5   \ Activate no-stimulus trial
+         @false: ---> S4
+S4,
+0.1": IF (P = 3) [@true, @false]
+         @true: Z3 ---> S5   \ Activate stimulus trial
+         @false:  ---> S5
+S5,
+20": IF (B = 60) [@true, @false]
+        @true: ---> S6       \Stop session after 60 trials
+        @false: ---> S2
+
+S6,
+19":  SHOW 3, SUCCESS, D; SHOW 4, SHOCKED, E; SHOW 5, OMITTED, C; ---> STOPABORTFLUSH
+
+\-------------------------------------------------------------
+
+S.S.2,
+S1,
+    #Z1: Z8; SET F(B) = A/100 ---> S2
+S2,
+   #R^Nosepoke: SET G(B) = A/100; SET H(B) = 2; ADD D ---> S1        \Response
+   #Z5: ADD C  ---> S1                \Omission
+
+
+\-------------------------------------------------------------
+
+S.S.4,
+S1,
+    #Z3: Z8; On ^Tone; ON ^RightCue; ON ^LeftCue; SET F(B) = A/100 ---> S2
+S2,
+    #R^Nosepoke: OFF ^Tone; OFF ^RightCue; OFF ^LeftCue; ON^Shock; SET G(B) = A/100; SET H(B) = 1; ADD E ---> S3    \Response (shock)
+    12": OFF ^Tone; OFF ^RightCue; OFF ^LeftCue; ---> S4
+S3,
+    0.5": OFF ^Shock ---> S1
+S4,
+   #R^Nosepoke: SET G(B) = A/100; SET H(B) = 2; ADD D ---> S1  \Response (success)
+   #Z5: ADD C ---> S1      \Omission
+
+
+\--------------------------------------------------------------
+
+S.S.6, \ Give reward, but only when there the food receptacle is empty
+S1,
+  #Z8: ON ^Reward ---> S2
+S2,
+  #R^Nosepoke: OFF ^Reward ---> S1
+  39": OFF ^Reward ---> S3
+S3, \also give a second reward, in case the pellet dispenser did not work (but stop giving pellet if this one is omitted too)
+  #Z8: ON ^Reward ---> S4
+S4,
+  #R^Nosepoke: OFF ^Reward ---> S1
+
+\---------------------------------------------------------
+
+S.S.7, \Timer
+S1,
+  #START ---> S2
+S2,
+0.01": ADD A; SHOW 1, Timer, A/100 ---> SX
